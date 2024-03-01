@@ -4,8 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
-const passwordRegex = /^[a-zA-Z0-9]{5,}$/;
+
 
 const app = express();
 
