@@ -1,11 +1,9 @@
-// codefree/app.js
+ // codefree/app.js
 
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-
-
 const app = express();
 
 mongoose.connect('mongodb://localhost:27017/codefree', { useNewUrlParser: true, useUnifiedTopology: true });
@@ -51,7 +49,7 @@ app.post('/run_code', (req, res) => {
 });
 
 
-app.get('/profile.html', async (req, res) => {
+app.get('/profile', async (req, res) => {
     try {
         if (!req.session || !req.session.userId) {
             return res.redirect('/login');
@@ -61,7 +59,7 @@ app.get('/profile.html', async (req, res) => {
         if (!currentUser) {
             return res.status(404).send('User not found');
         }
-        res.sendFile(__dirname + '/templates/profile.html'); // Отправляем HTML страницу профиля
+        res.send(currentUser.toObject());
     } catch (error) {
         console.error(error);
         res.status(500).send('Internal Server Error');
@@ -72,18 +70,11 @@ app.get('/profile.html', async (req, res) => {
 app.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
     try {
-        if (!passwordRegex.test(password)) {
-            return res.send('Password must be at least 5 characters long and contain only letters and digits.');
-        }
-
         const existingUser = await User.findOne({ username });
         if (existingUser) {
             return res.send('Username already exists. Choose a different one.');
         }
-
-        // Хэшируем пароль перед сохранением
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, email, password: hashedPassword });
+        const newUser = new User({ username, email, password });
         await newUser.save();
         return res.send(`
             <p>Registration successful!</p>
@@ -98,14 +89,10 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        // Используем метод findOne с фильтрами, чтобы найти пользователя по имени пользователя
-        const user = await User.findOne({ username });
-
-        // Проверяем, найден ли пользователь и сравниваем хэшированный пароль
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        const user = await User.findOne({ username, password });
+        if (!user) {
             return res.send('Invalid username or password.');
         }
-
         req.session.userId = user._id;
         return res.send(`
             <p>Login successful!</p>
@@ -116,7 +103,6 @@ app.post('/login', async (req, res) => {
         return res.status(500).send('Internal Server Error');
     }
 });
-
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/templates/index.html');
@@ -147,4 +133,3 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
-
